@@ -16,8 +16,8 @@ def scheduler_initiator():
 
     scheduler = BackgroundScheduler()
 
-    #job_call_get_locations = scheduler.add_job(get_locations, 'cron', day='*', hour='23', minute='01', second='05')#Production
-    job_ws_weather_and_UserLocationDay_updater = scheduler.add_job(scheduler_manager, 'cron', hour='*', minute='33', second='25')#Testing
+    job_ws_weather_and_UserLocationDay_updater = scheduler.add_job(scheduler_manager, 'cron', hour='01', minute='00', second='00')#Production
+    # job_ws_weather_and_UserLocationDay_updater = scheduler.add_job(scheduler_manager, 'cron', hour='*', minute='', second='25')#Testing
     # job_call_harmless = scheduler.add_job(harmless, 'cron',  hour='*', minute='03', second='35')#Testing
 
     scheduler.start()
