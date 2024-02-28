@@ -7,7 +7,7 @@ import pandas as pd
 import time
 from ws_models import sess, engine, Users, WeatherHistory, Locations, UserLocationDay
 from common.config_and_logger import config, logger_scheduler
-from utils import interpolate_missing_dates_exclude_references, \
+from ws_utilities import interpolate_missing_dates_exclude_references, \
     add_weather_history
 
 
@@ -17,7 +17,7 @@ def scheduler_initiator():
     scheduler = BackgroundScheduler()
 
     #job_call_get_locations = scheduler.add_job(get_locations, 'cron', day='*', hour='23', minute='01', second='05')#Production
-    job_ws_weather_and_UserLocationDay_updater = scheduler.add_job(scheduler_manager, 'cron', hour='*', minute='35', second='45')#Testing
+    job_ws_weather_and_UserLocationDay_updater = scheduler.add_job(scheduler_manager, 'cron', hour='*', minute='33', second='25')#Testing
     # job_call_harmless = scheduler.add_job(harmless, 'cron',  hour='*', minute='03', second='35')#Testing
 
     scheduler.start()
@@ -62,10 +62,12 @@ def interpolate_UserLocationDay_manager():
 
 
 def update_weather_history():
+    ###########################################################################################
+    # This function updates the weather history for yesterday for all locations in Locations ##
+    ###########################################################################################
     # api_token = config.VISUAL_CROSSING_TOKEN
     api_token = config.VISUAL_CROSSING_TOKEN
     vc_base_url = config.VISUAL_CROSSING_BASE_URL
-    
     
     # date_time = datetime.strptime(date + " 13:00:00", "%Y-%m-%d %H:%M:%S").isoformat()
     yesterday_date = datetime.utcnow()  - timedelta(days=1)
