@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import os
 import pandas as pd
 import time
-from ws_models import sess, engine, Users, WeatherHistory, Locations, UserLocationDay
+from ws_models import session_scope, engine, Users, WeatherHistory, Locations, UserLocationDay
 from common.config_and_logger import config, logger_scheduler
 from ws_utilities import interpolate_missing_dates_exclude_references, \
     add_weather_history
@@ -45,20 +45,21 @@ def scheduler_manager():
 
 
 def interpolate_UserLocationDay_manager():
-    users_list = sess.query(Users).all()
+    with session_scope() as session:
+        users_list = session.query(Users).all()
 
-    for user in users_list:
-        query = sess.query(UserLocationDay).filter(UserLocationDay.user_id == user.id)
-        # # Convert the query result to a list of dictionaries
-        df_existing_user_locations = pd.read_sql(query.statement, sess.bind)
+        for user in users_list:
+            query = session.query(UserLocationDay).filter(UserLocationDay.user_id == user.id)
+            # # Convert the query result to a list of dictionaries
+            df_existing_user_locations = pd.read_sql(query.statement, session.bind)
 
-        if len(df_existing_user_locations) > 1:
-            interpolated_df = interpolate_missing_dates_exclude_references(df_existing_user_locations)
+            if len(df_existing_user_locations) > 1:
+                interpolated_df = interpolate_missing_dates_exclude_references(df_existing_user_locations)
 
-            logger_scheduler.info(f"interpolated_df Length: {len(interpolated_df)}")
+                logger_scheduler.info(f"interpolated_df Length: {len(interpolated_df)}")
 
-            if len(interpolated_df) > 0:
-                interpolated_df.to_sql('user_location_day', con=engine, if_exists='append', index=False)
+                if len(interpolated_df) > 0:
+                    interpolated_df.to_sql('user_location_day', con=engine, if_exists='append', index=False)
 
 
 def update_weather_history():
@@ -74,29 +75,30 @@ def update_weather_history():
     yesterday_date_str = yesterday_date.strftime('%Y-%m-%d')
     date_1_start = yesterday_date_str
     logger_scheduler.info(f"- Collecting Weather History for: {date_1_start} -")
-    locations_list = sess.query(Locations).all()
-    weather_hist_call_counter = 0
-    for location in locations_list:
-        logger_scheduler.info(f"- Checking Weather History for: {location.id} - {location.city}, {location.country} -")
-        weather_hist_exists = sess.query(WeatherHistory).filter_by(
-            location_id = location.id).filter_by(date_time=yesterday_date_str).first()
+    with session_scope() as session:
+        locations_list = session.query(Locations).all()
+        weather_hist_call_counter = 0
+        for location in locations_list:
+            logger_scheduler.info(f"- Checking Weather History for: {location.id} - {location.city}, {location.country} -")
+            weather_hist_exists = session.query(WeatherHistory).filter_by(
+                location_id = location.id).filter_by(date_time=yesterday_date_str).first()
+            
+            if not weather_hist_exists:
+                logger_scheduler.info(f"- Weather History on {date_1_start} does not exist for: {location.id}  -")
+                weather_hist_call_counter += 1
+                lat = location.lat
+                lon = location.lon
+                vc_weather_history_api_call_url = f"{vc_base_url}/{str(lat)},{str(lon)}/{date_1_start}?unitGroup=metric&key={api_token}&include=days"
+                request_vc_weather_history = requests.get(vc_weather_history_api_call_url)
+                # logger_scheduler.info(f"VC API call vc_weather_history_api_call_url: {vc_weather_history_api_call_url} ")
+                # logger_scheduler.info(f"VC API call status_code: {request_vc_weather_history.status_code} ")
+                if request_vc_weather_history.status_code == 200:
+                    # logger_scheduler.info(f"VC API call success! ")
+                    weather_data = request_vc_weather_history.json()
+                    add_weather_history(location.id, weather_data)
+                    logger_scheduler.info(f"- Successfully added Weather History for: location.id: {location.id} for date: {date_1_start} -")
         
-        if not weather_hist_exists:
-            logger_scheduler.info(f"- Weather History on {date_1_start} does not exist for: {location.id}  -")
-            weather_hist_call_counter += 1
-            lat = location.lat
-            lon = location.lon
-            vc_weather_history_api_call_url = f"{vc_base_url}/{str(lat)},{str(lon)}/{date_1_start}?unitGroup=metric&key={api_token}&include=days"
-            request_vc_weather_history = requests.get(vc_weather_history_api_call_url)
-            # logger_scheduler.info(f"VC API call vc_weather_history_api_call_url: {vc_weather_history_api_call_url} ")
-            # logger_scheduler.info(f"VC API call status_code: {request_vc_weather_history.status_code} ")
-            if request_vc_weather_history.status_code == 200:
-                # logger_scheduler.info(f"VC API call success! ")
-                weather_data = request_vc_weather_history.json()
-                add_weather_history(location.id, weather_data)
-                logger_scheduler.info(f"- Successfully added Weather History for: location.id: {location.id} for date: {date_1_start} -")
-    
-    logger_scheduler.info(f"- Made  {weather_hist_call_counter} VC API calls for weather history locations ")
+        logger_scheduler.info(f"- Made  {weather_hist_call_counter} VC API calls for weather history locations ")
 
 if __name__ == '__main__':  
     scheduler_initiator()
