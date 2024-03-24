@@ -1,5 +1,5 @@
 import os
-from ws_config import ConfigLocal, ConfigDev, ConfigProd
+from ws_config import ConfigWorkstation, ConfigDev, ConfigProd
 import logging
 from logging.handlers import RotatingFileHandler
 
@@ -11,7 +11,7 @@ match os.environ.get('FLASK_CONFIG_TYPE'):
         config = ConfigProd()
         print('- WhatSticks11Scheduler/config: Production')
     case _:
-        config = ConfigLocal()
+        config = ConfigWorkstation()
         print('- WhatSticks11Scheduler/config: Local')
 
 #Setting up Logger
