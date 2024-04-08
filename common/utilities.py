@@ -1,4 +1,4 @@
-from common.config_and_logger import config, logger_apple
+from common.config_and_logger import config, logger_scheduler
 import os
 
 def apple_health_qty_cat_json_filename(user_id, timestamp_str):
@@ -22,3 +22,19 @@ def create_pickle_apple_workouts_path_and_name(user_id_str):
     #pickle filename and path
     pickle_apple_workouts_path_and_name = os.path.join(config.DATAFRAME_FILES_DIR, user_apple_workouts_dataframe_pickle_file_name)
     return pickle_apple_workouts_path_and_name
+
+
+def wrap_up_session(db_session):
+    logger_scheduler.info("- accessed wrap_up_session -")
+    try:
+        # perform some database operations
+        db_session.commit()
+        logger_scheduler.info("- perfomed: db_session.commit() -")
+    except Exception as e:
+        logger_scheduler.info(f"{type(e).__name__}: {e}")
+        db_session.rollback()  # Roll back the transaction on error
+        logger_scheduler.info("- perfomed: db_session.rollback() -")
+        raise
+    finally:
+        db_session.close()  # Ensure the session is closed in any case
+        logger_scheduler.info("- perfomed: db_session.close() -")

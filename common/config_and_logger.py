@@ -15,8 +15,9 @@ match os.environ.get('WS_CONFIG_TYPE'):
         print('- WhatSticks11Scheduler/config: Local')
 
 #Setting up Logger
+app_name = "WS11Scheduler"
 formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
-formatter_terminal = logging.Formatter('%(asctime)s:%(filename)s:%(name)s:%(message)s')
+formatter_terminal = logging.Formatter(f'%(asctime)s - {app_name} - %(name)s - [%(filename)s:%(lineno)d] - %(message)s')
 
 #initialize a logger
 logger_scheduler = logging.getLogger(__name__)
