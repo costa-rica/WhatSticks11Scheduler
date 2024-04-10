@@ -9,7 +9,7 @@ from ws_models import engine, DatabaseSession, Users, WeatherHistory, Locations,
 from common.config_and_logger import config, logger_scheduler
 from common.utilities import wrap_up_session
 from ws_utilities import interpolate_missing_dates_exclude_references, \
-    add_weather_history
+    add_weather_history, request_visual_crossing_yesterday_weather
 
 
 def scheduler_initiator():
@@ -18,7 +18,7 @@ def scheduler_initiator():
     scheduler = BackgroundScheduler()
 
     job_ws_weather_and_UserLocationDay_updater = scheduler.add_job(scheduler_manager, 'cron', day='*', hour='01', minute='00', second='00')#Production
-    # job_ws_weather_and_UserLocationDay_updater = scheduler.add_job(scheduler_manager, 'cron', hour='*', minute='25', second='55')#Testing
+    # job_ws_weather_and_UserLocationDay_updater = scheduler.add_job(scheduler_manager, 'cron', hour='*', minute='45', second='05')#Testing
     # job_call_harmless = scheduler.add_job(harmless, 'cron',  hour='*', minute='03', second='35')#Testing
 
     scheduler.start()
@@ -70,8 +70,8 @@ def update_weather_history():
     # This function updates the weather history for yesterday for all locations in Locations ##
     ###########################################################################################
     # api_token = config.VISUAL_CROSSING_TOKEN
-    api_token = config.VISUAL_CROSSING_TOKEN
-    vc_base_url = config.VISUAL_CROSSING_BASE_URL
+    # api_token = config.VISUAL_CROSSING_TOKEN
+    # vc_base_url = config.VISUAL_CROSSING_BASE_URL
     db_session = DatabaseSession()
     
     # date_time = datetime.strptime(date + " 13:00:00", "%Y-%m-%d %H:%M:%S").isoformat()
@@ -89,19 +89,25 @@ def update_weather_history():
         if not weather_hist_exists:
             logger_scheduler.info(f"- Weather History on {date_1_start} does not exist for: {location.id}  -")
             weather_hist_call_counter += 1
-            lat = location.lat
-            lon = location.lon
-            vc_weather_history_api_call_url = f"{vc_base_url}/{str(lat)},{str(lon)}/{date_1_start}?unitGroup=metric&key={api_token}&include=days"
-            request_vc_weather_history = requests.get(vc_weather_history_api_call_url)
-            # logger_scheduler.info(f"VC API call vc_weather_history_api_call_url: {vc_weather_history_api_call_url} ")
-            # logger_scheduler.info(f"VC API call status_code: {request_vc_weather_history.status_code} ")
-            if request_vc_weather_history.status_code == 200:
-                # logger_scheduler.info(f"VC API call success! ")
-                weather_data = request_vc_weather_history.json()
+            weather_data = request_visual_crossing_yesterday_weather(location, date_1_start)
+            if len(weather_data) >0:
                 add_weather_history(db_session, location.id, weather_data)
-                logger_scheduler.info(f"- Successfully added Weather History for: location.id: {location.id} for date: {date_1_start} -")
+            # lat = location.lat
+            # lon = location.lon
+            
+            # vc_weather_history_api_call_url = f"{vc_base_url}/{str(lat)},{str(lon)}/{date_1_start}?unitGroup=metric&key={api_token}&include=days"
+            # request_vc_weather_history = requests.get(vc_weather_history_api_call_url)
+            # # logger_scheduler.info(f"VC API call vc_weather_history_api_call_url: {vc_weather_history_api_call_url} ")
+            # # logger_scheduler.info(f"VC API call status_code: {request_vc_weather_history.status_code} ")
+            # if request_vc_weather_history.status_code == 200:
+            #     # logger_scheduler.info(f"VC API call success! ")
+            #     weather_data = request_vc_weather_history.json()
+            #     add_weather_history(db_session, location.id, weather_data)
+            #     logger_scheduler.info(f"- Successfully added Weather History for: location.id: {location.id} for date: {date_1_start} -")
     
-    logger_scheduler.info(f"- Made  {weather_hist_call_counter} VC API calls for weather history locations ")
+            
+
+    logger_scheduler.info(f"- Made {weather_hist_call_counter} VC API calls for weather history locations ")
     wrap_up_session(db_session)
 
 if __name__ == '__main__':  
