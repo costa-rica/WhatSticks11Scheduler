@@ -8,8 +8,7 @@ import time
 from ws_models import engine, DatabaseSession, Users, WeatherHistory, Locations, UserLocationDay
 from common.config_and_logger import config, logger_scheduler
 from common.utilities import wrap_up_session
-from ws_utilities import interpolate_missing_dates_exclude_references, \
-    collect_yesterday_weather_history_from_visual_crossing
+from ws_utilities import collect_yesterday_weather_history_from_visual_crossing
     # add_weather_history, request_visual_crossing_for_one_day
     
 
