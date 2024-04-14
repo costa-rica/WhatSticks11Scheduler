@@ -46,25 +46,25 @@ def scheduler_manager():
     update_weather_history()
     logger_scheduler.info("--- ENDED What Sticks 11 Scheduler ---")
 
+# # OBE due to ws_analysis/ create_df_daily_user_location_consecutive
+# def interpolate_UserLocationDay_manager():
+#     db_session = DatabaseSession()
+#     users_list = db_session.query(Users).all()
 
-def interpolate_UserLocationDay_manager():
-    db_session = DatabaseSession()
-    users_list = db_session.query(Users).all()
+#     for user in users_list:
+#         query = db_session.query(UserLocationDay).filter(UserLocationDay.user_id == user.id)
+#         # # Convert the query result to a list of dictionaries
+#         df_existing_user_locations = pd.read_sql(query.statement, db_session.bind)
 
-    for user in users_list:
-        query = db_session.query(UserLocationDay).filter(UserLocationDay.user_id == user.id)
-        # # Convert the query result to a list of dictionaries
-        df_existing_user_locations = pd.read_sql(query.statement, db_session.bind)
+#         if len(df_existing_user_locations) > 1:
+#             interpolated_df = interpolate_missing_dates_exclude_references(df_existing_user_locations)
 
-        if len(df_existing_user_locations) > 1:
-            interpolated_df = interpolate_missing_dates_exclude_references(df_existing_user_locations)
+#             logger_scheduler.info(f"interpolated_df Length: {len(interpolated_df)}")
 
-            logger_scheduler.info(f"interpolated_df Length: {len(interpolated_df)}")
-
-            if len(interpolated_df) > 0:
-                interpolated_df.to_sql('user_location_day', con=engine, if_exists='append', index=False)
+#             if len(interpolated_df) > 0:
+#                 interpolated_df.to_sql('user_location_day', con=engine, if_exists='append', index=False)
     
-    wrap_up_session(db_session)
+#     wrap_up_session(db_session)
 
 
 def update_weather_history():
